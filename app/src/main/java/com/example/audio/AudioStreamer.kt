@@ -68,9 +68,15 @@ class AudioStreamer(context: Context) {
     init {
         tts = TextToSpeech(appContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
+                tts?.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build(),
+                )
                 tts?.language = Locale.US
-                tts?.setPitch(1.12f)
-                tts?.setSpeechRate(1.06f)
+                tts?.setPitch(1.10f)
+                tts?.setSpeechRate(1.02f)
                 ttsReady = true
             } else {
                 Log.w(TAG, "TextToSpeech initialization failed with status: $status")
@@ -189,6 +195,12 @@ class AudioStreamer(context: Context) {
         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
             Log.w(TAG, "TTS locale $locale not supported, keeping current locale")
         }
+    }
+
+    fun setVoiceProfile(pitch: Float, speechRate: Float) {
+        if (!ttsReady) return
+        tts?.setPitch(pitch.coerceIn(0.5f, 2.0f))
+        tts?.setSpeechRate(speechRate.coerceIn(0.5f, 2.0f))
     }
 
     fun speakDemoLine(text: String, onFinished: () -> Unit) {

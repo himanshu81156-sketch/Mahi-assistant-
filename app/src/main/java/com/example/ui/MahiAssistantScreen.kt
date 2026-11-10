@@ -1,30 +1,27 @@
 package com.example.ui
 
-import androidx.compose.animation.AnimatedVisibility
+import android.graphics.Bitmap
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -35,34 +32,37 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Chat
 import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.AccessibilityNew
+import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Contacts
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Forum
-import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.Mic
-import androidx.compose.material.icons.rounded.MicOff
-import androidx.compose.material.icons.rounded.PermMedia
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Phone
+import androidx.compose.material.icons.rounded.Photo
 import androidx.compose.material.icons.rounded.PhotoLibrary
-import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Translate
+import androidx.compose.material.icons.rounded.Videocam
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -78,10 +78,10 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -94,99 +94,84 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.chat.ChatMessage
 import com.example.live.MahiLanguage
 import com.example.live.SessionState
-import com.example.studio.AspectRatioOption
-import com.example.studio.MediaType
-import com.example.studio.StudioUiState
+import com.example.live.VoiceCharacter
+import com.example.permissions.SmartPermissionStatus
+import com.example.permissions.SmartPermissionType
 import com.example.ui.theme.MahiCyan
 import com.example.ui.theme.MahiDeepNavy
 import com.example.ui.theme.MahiMagenta
 import com.example.ui.theme.MahiObsidian
 import com.example.ui.theme.MahiOutline
-import com.example.ui.theme.MahiRose
 import com.example.ui.theme.MahiSurface
 import com.example.ui.theme.MahiTextPrimary
 import com.example.ui.theme.MahiTextSecondary
 import com.example.ui.theme.MahiViolet
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlinx.coroutines.launch
 
 enum class MahiTab {
-    VOICE,
-    APP_BUILDER,
-    MEDIA_STUDIO,
+    CHAT,
+    PHOTO,
+    VIDEO,
+    SETTINGS,
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MahiAssistantScreen(
     uiState: MahiUiState,
-    studioState: StudioUiState,
-    lastExecutedToolUrl: String?,
+    chatMessages: List<ChatMessage>,
+    isChatReplying: Boolean,
+    bubbleEnabled: Boolean,
+    onToggleBubble: () -> Unit,
+    onSendChatMessage: (String) -> Unit,
+    onClearChat: () -> Unit,
     onCentralTap: () -> Unit,
-    onEndSession: () -> Unit,
     onSelectLanguage: (MahiLanguage) -> Unit,
-    onRequestMicPermission: () -> Unit,
-    onTriggerSampleTurn: () -> Unit,
-    onTriggerWebsiteTool: () -> Unit,
+    onSelectVoiceCharacter: (VoiceCharacter) -> Unit,
     onOpenUrl: (String) -> Unit,
-    onAppPromptChange: (String) -> Unit,
-    onBuildApp: () -> Unit,
-    onMediaPromptChange: (String) -> Unit,
-    onSelectMediaType: (MediaType) -> Unit,
-    onSelectAspectRatio: (AspectRatioOption) -> Unit,
-    onToggleVideoPlayback: () -> Unit,
-    onGenerateMedia: () -> Unit,
+    selectedPhotoUri: String?,
+    capturedBitmap: Bitmap?,
+    onTakeCameraPhoto: () -> Unit,
+    onPickGalleryPhoto: () -> Unit,
+    selectedVideoLabel: String?,
+    onRecordCameraVideo: () -> Unit,
+    onPickGalleryVideo: () -> Unit,
     grantedStorageLabel: String?,
     pickedMediaLabel: String?,
     onPickStorageFolder: () -> Unit,
     onPickMedia: () -> Unit,
-    onPickReferencePhoto: () -> Unit,
-    onClearReferencePhoto: () -> Unit,
     onOpenAppSettings: () -> Unit,
+    smartPermissionStatus: SmartPermissionStatus,
+    onGrantSmartPermission: (SmartPermissionType) -> Unit,
+    onDenySmartPermission: (SmartPermissionType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showLanguageSheet by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableStateOf(MahiTab.VOICE) }
+    var showVoiceSheet by remember { mutableStateOf(false) }
+    var pendingPermission by remember { mutableStateOf<SmartPermissionType?>(null) }
+    var selectedTab by remember { mutableStateOf(MahiTab.CHAT) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+
     val activeAccent by animateColorAsState(
         targetValue = when (uiState.sessionState) {
-            SessionState.DISCONNECTED -> MahiViolet
-            SessionState.CONNECTING -> MahiCyan
+            SessionState.DISCONNECTED -> MahiCyan
+            SessionState.CONNECTING -> MahiViolet
             SessionState.LISTENING -> MahiCyan
             SessionState.SPEAKING -> MahiMagenta
         },
         animationSpec = tween(durationMillis = 450),
         label = "activeAccent",
-    )
-
-    val activeLevel = when (uiState.sessionState) {
-        SessionState.LISTENING -> uiState.micLevel
-        SessionState.SPEAKING -> uiState.speakerLevel
-        SessionState.CONNECTING -> 0.35f
-        SessionState.DISCONNECTED -> 0.05f
-    }
-
-    val smoothLevel by animateFloatAsState(
-        targetValue = activeLevel,
-        animationSpec = spring(dampingRatio = 0.65f, stiffness = 400f),
-        label = "smoothLevel",
     )
 
     ModalNavigationDrawer(
@@ -317,6 +302,47 @@ fun MahiAssistantScreen(
                             onOpenAppSettings()
                         },
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                    HorizontalDivider(color = MahiOutline)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = stringResource(R.string.drawer_smart_permissions_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MahiTextPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    SmartPermissionType.entries.forEach { permType ->
+                        val isOn = smartPermissionStatus.isGranted(permType)
+                        val icon = when (permType) {
+                            SmartPermissionType.ACCESSIBILITY -> Icons.Rounded.AccessibilityNew
+                            SmartPermissionType.NOTIFICATIONS -> Icons.Rounded.NotificationsActive
+                            SmartPermissionType.LOCATION -> Icons.Rounded.LocationOn
+                            SmartPermissionType.CONTACTS -> Icons.Rounded.Contacts
+                            SmartPermissionType.OVERLAY -> Icons.Rounded.Layers
+                            SmartPermissionType.CAMERA -> Icons.Rounded.CameraAlt
+                            SmartPermissionType.MICROPHONE -> Icons.Rounded.Mic
+                            SmartPermissionType.STORAGE -> Icons.Rounded.FolderOpen
+                        }
+                        DrawerLinkCard(
+                            title = permType.title,
+                            subtitle = if (isOn) {
+                                stringResource(R.string.permission_status_on)
+                            } else {
+                                stringResource(R.string.permission_status_off)
+                            },
+                            icon = icon,
+                            accentColor = if (isOn) Color(0xFF25D366) else MahiCyan,
+                            testTag = "drawer_perm_${permType.name.lowercase()}",
+                            onClick = {
+                                coroutineScope.launch { drawerState.close() }
+                                pendingPermission = permType
+                            },
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
                 }
             }
         },
@@ -325,342 +351,302 @@ fun MahiAssistantScreen(
             containerColor = MahiObsidian,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             bottomBar = {
-                NavigationBar(
-                    containerColor = MahiSurface.copy(alpha = 0.96f),
-                    contentColor = MahiTextPrimary,
-                ) {
-                    NavigationBarItem(
-                        selected = selectedTab == MahiTab.VOICE,
-                        onClick = { selectedTab = MahiTab.VOICE },
-                        icon = { Icon(Icons.Rounded.Mic, contentDescription = null) },
-                        label = { Text(stringResource(R.string.nav_voice)) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = activeAccent,
-                            selectedTextColor = activeAccent,
-                            indicatorColor = activeAccent.copy(alpha = 0.16f),
-                            unselectedIconColor = MahiTextSecondary,
-                            unselectedTextColor = MahiTextSecondary,
-                        ),
-                        modifier = Modifier.testTag("tab_voice"),
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MahiCyan.copy(alpha = 0.55f),
+                                        MahiMagenta.copy(alpha = 0.55f),
+                                        Color.Transparent,
+                                    ),
+                                ),
+                            ),
                     )
-                    NavigationBarItem(
-                        selected = selectedTab == MahiTab.APP_BUILDER,
-                        onClick = { selectedTab = MahiTab.APP_BUILDER },
-                        icon = { Icon(Icons.Rounded.Build, contentDescription = null) },
-                        label = { Text(stringResource(R.string.nav_app_builder)) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MahiCyan,
-                            selectedTextColor = MahiCyan,
-                            indicatorColor = MahiCyan.copy(alpha = 0.16f),
-                            unselectedIconColor = MahiTextSecondary,
-                            unselectedTextColor = MahiTextSecondary,
-                        ),
-                        modifier = Modifier.testTag("tab_app_builder"),
-                    )
-                    NavigationBarItem(
-                        selected = selectedTab == MahiTab.MEDIA_STUDIO,
-                        onClick = { selectedTab = MahiTab.MEDIA_STUDIO },
-                        icon = { Icon(Icons.Rounded.PermMedia, contentDescription = null) },
-                        label = { Text(stringResource(R.string.nav_media_studio)) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MahiMagenta,
-                            selectedTextColor = MahiMagenta,
-                            indicatorColor = MahiMagenta.copy(alpha = 0.16f),
-                            unselectedIconColor = MahiTextSecondary,
-                            unselectedTextColor = MahiTextSecondary,
-                        ),
-                        modifier = Modifier.testTag("tab_media_studio"),
-                    )
+                    NavigationBar(
+                        containerColor = MahiSurface.copy(alpha = 0.96f),
+                        contentColor = MahiTextPrimary,
+                    ) {
+                        NavigationBarItem(
+                            selected = selectedTab == MahiTab.CHAT,
+                            onClick = { selectedTab = MahiTab.CHAT },
+                            icon = { Icon(Icons.AutoMirrored.Rounded.Chat, contentDescription = null) },
+                            label = { Text(stringResource(R.string.nav_chat)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MahiCyan,
+                                selectedTextColor = MahiCyan,
+                                indicatorColor = MahiCyan.copy(alpha = 0.18f),
+                                unselectedIconColor = MahiTextSecondary,
+                                unselectedTextColor = MahiTextSecondary,
+                            ),
+                            modifier = Modifier.testTag("tab_chat"),
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == MahiTab.PHOTO,
+                            onClick = { selectedTab = MahiTab.PHOTO },
+                            icon = { Icon(Icons.Rounded.Photo, contentDescription = null) },
+                            label = { Text(stringResource(R.string.nav_photo)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MahiMagenta,
+                                selectedTextColor = MahiMagenta,
+                                indicatorColor = MahiMagenta.copy(alpha = 0.18f),
+                                unselectedIconColor = MahiTextSecondary,
+                                unselectedTextColor = MahiTextSecondary,
+                            ),
+                            modifier = Modifier.testTag("tab_photo"),
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == MahiTab.VIDEO,
+                            onClick = { selectedTab = MahiTab.VIDEO },
+                            icon = { Icon(Icons.Rounded.Videocam, contentDescription = null) },
+                            label = { Text(stringResource(R.string.nav_video)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MahiCyan,
+                                selectedTextColor = MahiCyan,
+                                indicatorColor = MahiCyan.copy(alpha = 0.18f),
+                                unselectedIconColor = MahiTextSecondary,
+                                unselectedTextColor = MahiTextSecondary,
+                            ),
+                            modifier = Modifier.testTag("tab_video"),
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == MahiTab.SETTINGS,
+                            onClick = { selectedTab = MahiTab.SETTINGS },
+                            icon = { Icon(Icons.Rounded.Settings, contentDescription = null) },
+                            label = { Text(stringResource(R.string.nav_settings)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MahiViolet,
+                                selectedTextColor = MahiViolet,
+                                indicatorColor = MahiViolet.copy(alpha = 0.18f),
+                                unselectedIconColor = MahiTextSecondary,
+                                unselectedTextColor = MahiTextSecondary,
+                            ),
+                            modifier = Modifier.testTag("tab_settings"),
+                        )
+                    }
                 }
             },
         ) { innerPadding ->
+            val bgTransition = rememberInfiniteTransition(label = "ambientGlow")
+            val glowDrift by bgTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 6500, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "glowDrift",
+            )
+
             Box(
                 modifier = modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                activeAccent.copy(alpha = 0.16f),
-                                MahiDeepNavy,
-                                MahiObsidian,
-                            ),
-                            radius = 1400f,
-                        ),
-                    ),
+                    .background(MahiObsidian),
             ) {
+                // Ambient Cyber-Glow Canvas Backdrop
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(MahiDeepNavy, MahiObsidian, MahiDeepNavy.copy(alpha = 0.7f)),
+                        ),
+                    )
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(MahiCyan.copy(alpha = 0.16f), Color.Transparent),
+                            center = Offset(size.width * (0.18f + 0.12f * glowDrift), size.height * 0.14f),
+                            radius = size.minDimension * 0.65f,
+                        ),
+                        radius = size.minDimension * 0.65f,
+                        center = Offset(size.width * (0.18f + 0.12f * glowDrift), size.height * 0.14f),
+                    )
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(MahiMagenta.copy(alpha = 0.13f), Color.Transparent),
+                            center = Offset(size.width * (0.85f - 0.12f * glowDrift), size.height * 0.75f),
+                            radius = size.minDimension * 0.7f,
+                        ),
+                        radius = size.minDimension * 0.7f,
+                        center = Offset(size.width * (0.85f - 0.12f * glowDrift), size.height * 0.75f),
+                    )
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .statusBarsPadding(),
                 ) {
-                    Row(
+                    // Glassmorphic Top Header Bar
+                    Surface(
+                        color = MahiSurface.copy(alpha = 0.75f),
+                        shape = RoundedCornerShape(22.dp),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            brush = Brush.horizontalGradient(
+                                listOf(MahiCyan.copy(alpha = 0.45f), MahiMagenta.copy(alpha = 0.35f)),
+                            ),
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
                     ) {
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.weight(1f),
                         ) {
-                            IconButton(
-                                onClick = { coroutineScope.launch { drawerState.open() } },
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .testTag("side_menu_button"),
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.weight(1f),
                             ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Menu,
-                                    contentDescription = stringResource(R.string.cd_side_menu),
-                                    tint = MahiTextPrimary,
-                                )
+                                IconButton(
+                                    onClick = { coroutineScope.launch { drawerState.open() } },
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .testTag("side_menu_button"),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Menu,
+                                        contentDescription = stringResource(R.string.cd_side_menu),
+                                        tint = MahiTextPrimary,
+                                    )
+                                }
+                                Box {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.img_creator_logo),
+                                        contentDescription = stringResource(R.string.cd_creator_logo),
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .border(
+                                                1.5.dp,
+                                                Brush.linearGradient(listOf(MahiCyan, MahiMagenta)),
+                                                CircleShape,
+                                            )
+                                            .clickable { coroutineScope.launch { drawerState.open() } }
+                                            .testTag("creator_logo_avatar"),
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .align(Alignment.BottomEnd)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF25D366))
+                                            .border(1.5.dp, MahiObsidian, CircleShape),
+                                    )
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.mahi_wordmark),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MahiTextPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.mahi_subtitle),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MahiCyan,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
-                            Image(
-                                painter = painterResource(id = R.drawable.img_creator_logo),
-                                contentDescription = stringResource(R.string.cd_creator_logo),
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .border(1.5.dp, activeAccent, CircleShape)
-                                    .clickable { coroutineScope.launch { drawerState.open() } }
-                                    .testTag("creator_logo_avatar"),
-                            )
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(R.string.mahi_wordmark),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = MahiTextPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = stringResource(R.string.mahi_subtitle),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MahiTextSecondary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            LanguageSelectorPill(
-                                selectedLanguage = uiState.selectedLanguage,
-                                accentColor = activeAccent,
-                                onClick = { showLanguageSheet = true },
-                            )
-                            StatusBadge(
-                                sessionState = uiState.sessionState,
-                                accentColor = activeAccent,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                BubbleTogglePill(
+                                    enabled = bubbleEnabled,
+                                    onClick = {
+                                        if (!smartPermissionStatus.overlayEnabled) {
+                                            pendingPermission = SmartPermissionType.OVERLAY
+                                        } else {
+                                            onToggleBubble()
+                                        }
+                                    },
+                                )
+                                LanguageSelectorPill(
+                                    selectedLanguage = uiState.selectedLanguage,
+                                    accentColor = activeAccent,
+                                    onClick = { showLanguageSheet = true },
+                                )
+                            }
                         }
                     }
 
-                    when (selectedTab) {
-                        MahiTab.VOICE -> {
-                            BoxWithConstraints(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                            ) {
-                                val isCompactHeight = maxHeight < 580.dp
-                                val orbSize: Dp = if (isCompactHeight) 200.dp else 260.dp
-
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .widthIn(max = 560.dp)
-                                        .align(Alignment.Center),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    if (uiState.isDemoMode) {
-                                        Surface(
-                                            color = MahiSurface.copy(alpha = 0.85f),
-                                            shape = RoundedCornerShape(50),
-                                            border = BorderStroke(1.dp, MahiOutline),
-                                            modifier = Modifier.testTag("demo_mode_notice"),
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.AutoAwesome,
-                                                    contentDescription = null,
-                                                    tint = MahiCyan,
-                                                    modifier = Modifier.size(14.dp),
-                                                )
-                                                Text(
-                                                    text = stringResource(R.string.demo_mode_notice),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MahiTextSecondary,
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        Spacer(modifier = Modifier.height(1.dp))
-                                    }
-
-                                    // Centerpiece: Neural Voice Orb + Central Mic/Power Button
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier.size(orbSize),
-                                    ) {
-                                        MahiNeuralOrb(
-                                            sessionState = uiState.sessionState,
-                                            level = smoothLevel,
-                                            accentColor = activeAccent,
-                                            modifier = Modifier.fillMaxSize(),
-                                        )
-
-                                        CentralVoiceButton(
-                                            sessionState = uiState.sessionState,
-                                            accentColor = activeAccent,
-                                            onClick = onCentralTap,
-                                        )
-                                    }
-
-                                    // Bottom Controls & State Prompt
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier.fillMaxWidth(),
-                                    ) {
-                                        AnimatedVisibility(
-                                            visible = lastExecutedToolUrl != null,
-                                            enter = fadeIn(),
-                                            exit = fadeOut(),
-                                        ) {
-                                            lastExecutedToolUrl?.let { url ->
-                                                Surface(
-                                                    color = MahiCyan.copy(alpha = 0.14f),
-                                                    shape = RoundedCornerShape(16.dp),
-                                                    border = BorderStroke(1.dp, MahiCyan.copy(alpha = 0.45f)),
-                                                    modifier = Modifier
-                                                        .padding(bottom = 10.dp)
-                                                        .testTag("tool_action_banner"),
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Rounded.Language,
-                                                            contentDescription = null,
-                                                            tint = MahiCyan,
-                                                            modifier = Modifier.size(16.dp),
-                                                        )
-                                                        Text(
-                                                            text = stringResource(R.string.tool_executed_prefix, url),
-                                                            style = MaterialTheme.typography.labelMedium,
-                                                            color = MahiTextPrimary,
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        val promptText = when {
-                                            uiState.sessionState == SessionState.DISCONNECTED ->
-                                                stringResource(R.string.hint_disconnected)
-                                            uiState.sessionState == SessionState.CONNECTING ->
-                                                stringResource(R.string.hint_connecting)
-                                            uiState.sessionState == SessionState.SPEAKING ->
-                                                stringResource(R.string.hint_speaking)
-                                            !uiState.hasMicPermission ->
-                                                stringResource(R.string.hint_mic_denied)
-                                            else ->
-                                                stringResource(R.string.hint_listening)
-                                        }
-
-                                        Text(
-                                            text = promptText,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MahiTextPrimary,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.testTag("session_prompt_text"),
-                                        )
-
-                                        Spacer(modifier = Modifier.height(12.dp))
-
-                                        FlowRow(
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
-                                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                                            modifier = Modifier.fillMaxWidth(),
-                                        ) {
-                                            if (!uiState.hasMicPermission) {
-                                                ActionChip(
-                                                    label = stringResource(R.string.action_grant_mic),
-                                                    icon = Icons.Rounded.MicOff,
-                                                    accentColor = MahiRose,
-                                                    testTag = "grant_mic_button",
-                                                    onClick = onRequestMicPermission,
-                                                )
-                                            }
-
-                                            if (uiState.sessionState == SessionState.LISTENING ||
-                                                uiState.sessionState == SessionState.SPEAKING
-                                            ) {
-                                                ActionChip(
-                                                    label = stringResource(R.string.action_sample_reply),
-                                                    icon = Icons.Rounded.GraphicEq,
-                                                    accentColor = MahiMagenta,
-                                                    testTag = "sample_reply_button",
-                                                    onClick = onTriggerSampleTurn,
-                                                )
-                                                ActionChip(
-                                                    label = stringResource(R.string.action_test_tool),
-                                                    icon = Icons.Rounded.Language,
-                                                    accentColor = MahiCyan,
-                                                    testTag = "test_tool_button",
-                                                    onClick = onTriggerWebsiteTool,
-                                                )
-                                                ActionChip(
-                                                    label = stringResource(R.string.action_end_session),
-                                                    icon = Icons.Rounded.PowerSettingsNew,
-                                                    accentColor = MahiRose,
-                                                    testTag = "end_session_button",
-                                                    onClick = onEndSession,
-                                                )
-                                            }
-                                        }
-
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                }
+                    AnimatedContent(
+                        targetState = selectedTab,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(160))
+                        },
+                        label = "tabTransition",
+                        modifier = Modifier.weight(1f),
+                    ) { tab ->
+                        when (tab) {
+                            MahiTab.CHAT -> {
+                                ChatTabScreen(
+                                    messages = chatMessages,
+                                    isReplying = isChatReplying,
+                                    voiceState = uiState.sessionState,
+                                    onSendMessage = onSendChatMessage,
+                                    onClearChat = onClearChat,
+                                    onMicTap = onCentralTap,
+                                    onQuickNavigatePhoto = { selectedTab = MahiTab.PHOTO },
+                                    onQuickNavigateVideo = { selectedTab = MahiTab.VIDEO },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
                             }
-                        }
 
-                        MahiTab.APP_BUILDER -> {
-                            AppBuilderScreen(
-                                uiState = studioState,
-                                onPromptChange = onAppPromptChange,
-                                onBuildApp = onBuildApp,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
+                            MahiTab.PHOTO -> {
+                                PhotoStudioTab(
+                                    selectedPhotoUri = selectedPhotoUri,
+                                    capturedBitmap = capturedBitmap,
+                                    onTakeCameraPhoto = onTakeCameraPhoto,
+                                    onPickGalleryPhoto = onPickGalleryPhoto,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
 
-                        MahiTab.MEDIA_STUDIO -> {
-                            MediaStudioScreen(
-                                uiState = studioState,
-                                onPromptChange = onMediaPromptChange,
-                                onSelectMediaType = onSelectMediaType,
-                                onSelectAspectRatio = onSelectAspectRatio,
-                                onToggleVideoPlayback = onToggleVideoPlayback,
-                                onPickReferencePhoto = onPickReferencePhoto,
-                                onClearReferencePhoto = onClearReferencePhoto,
-                                onGenerateMedia = onGenerateMedia,
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                            MahiTab.VIDEO -> {
+                                VideoStudioTab(
+                                    selectedVideoLabel = selectedVideoLabel,
+                                    onRecordCameraVideo = onRecordCameraVideo,
+                                    onPickGalleryVideo = onPickGalleryVideo,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+
+                            MahiTab.SETTINGS -> {
+                                SettingsTabScreen(
+                                    bubbleEnabled = bubbleEnabled,
+                                    onToggleBubble = {
+                                        if (!smartPermissionStatus.overlayEnabled) {
+                                            pendingPermission = SmartPermissionType.OVERLAY
+                                        } else {
+                                            onToggleBubble()
+                                        }
+                                    },
+                                    selectedLanguage = uiState.selectedLanguage,
+                                    onOpenLanguageSheet = { showLanguageSheet = true },
+                                    selectedCharacter = uiState.selectedCharacter,
+                                    onOpenVoiceSheet = { showVoiceSheet = true },
+                                    smartPermissionStatus = smartPermissionStatus,
+                                    onRequestPermissionOneByOne = { perm ->
+                                        pendingPermission = perm
+                                    },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         }
                     }
                 }
@@ -676,239 +662,110 @@ fun MahiAssistantScreen(
                         onDismiss = { showLanguageSheet = false },
                     )
                 }
+
+                if (showVoiceSheet) {
+                    VoiceCharacterPickerSheet(
+                        selectedCharacter = uiState.selectedCharacter,
+                        accentColor = MahiMagenta,
+                        onSelect = { character ->
+                            onSelectVoiceCharacter(character)
+                            showVoiceSheet = false
+                        },
+                        onDismiss = { showVoiceSheet = false },
+                    )
+                }
+
+                pendingPermission?.let { perm ->
+                    AlertDialog(
+                        onDismissRequest = { pendingPermission = null },
+                        containerColor = MahiSurface,
+                        titleContentColor = MahiTextPrimary,
+                        textContentColor = MahiTextSecondary,
+                        title = {
+                            Text(
+                                text = perm.title,
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                        },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = perm.reasonHinglish,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MahiTextPrimary,
+                                )
+                                Text(
+                                    text = stringResource(R.string.permission_ask_prompt),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MahiCyan,
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    pendingPermission = null
+                                    onGrantSmartPermission(perm)
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MahiCyan,
+                                    contentColor = MahiObsidian,
+                                ),
+                            ) {
+                                Text(stringResource(R.string.permission_yes))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = {
+                                    pendingPermission = null
+                                    onDenySmartPermission(perm)
+                                },
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.permission_no),
+                                    color = MahiTextSecondary,
+                                )
+                            }
+                        },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatusBadge(
-    sessionState: SessionState,
-    accentColor: Color,
-) {
-    val label = when (sessionState) {
-        SessionState.DISCONNECTED -> stringResource(R.string.state_disconnected)
-        SessionState.CONNECTING -> stringResource(R.string.state_connecting)
-        SessionState.LISTENING -> stringResource(R.string.state_listening)
-        SessionState.SPEAKING -> stringResource(R.string.state_speaking)
-    }
-
-    Surface(
-        color = accentColor.copy(alpha = 0.14f),
-        shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.4f)),
-        modifier = Modifier.testTag("status_badge"),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(accentColor),
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = accentColor,
-            )
-        }
-    }
-}
-
-@Composable
-private fun MahiNeuralOrb(
-    sessionState: SessionState,
-    level: Float,
-    accentColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "cyberWave")
-    val wavePhase by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2f * PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (sessionState == SessionState.CONNECTING) 900 else 1800,
-                easing = LinearEasing,
-            ),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "wavePhase",
-    )
-
-    val wavePath = remember { Path() }
-
-    Canvas(modifier = modifier) {
-        val center = Offset(size.width / 2f, size.height / 2f)
-
-        // Wide ambient core glow
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    accentColor.copy(alpha = 0.28f + level * 0.30f),
-                    MahiViolet.copy(alpha = 0.12f),
-                    Color.Transparent,
-                ),
-                center = center,
-                radius = size.minDimension * 0.52f,
-            ),
-            center = center,
-            radius = size.minDimension * 0.52f,
-        )
-
-        // Symmetrical 28-bar horizontal neon equalizer spectrum (no spinning circle)
-        val halfBars = 14
-        val barWidth = 5.dp.toPx()
-        val gap = (size.width * 0.42f) / halfBars
-        val centerGap = 60.dp.toPx()
-
-        for (i in 0 until halfBars) {
-            val normDist = i.toFloat() / halfBars.toFloat()
-            val wave = 0.5f + 0.5f * sin(wavePhase * 2f - i * 0.55f)
-            val envelope = 1f - normDist * 0.65f
-            val baseHeight = when (sessionState) {
-                SessionState.DISCONNECTED -> 10.dp.toPx() * envelope
-                SessionState.CONNECTING -> (16.dp.toPx() + 26.dp.toPx() * wave) * envelope
-                SessionState.LISTENING, SessionState.SPEAKING ->
-                    (14.dp.toPx() + (64.dp.toPx() * level * (0.4f + 0.6f * wave))) * envelope
-            }
-
-            val barColor = if (i % 2 == 0) accentColor else MahiMagenta
-            val xRight = center.x + centerGap + i * gap
-            val xLeft = center.x - centerGap - i * gap
-
-            drawLine(
-                color = barColor.copy(alpha = 0.9f - normDist * 0.35f),
-                start = Offset(xRight, center.y - baseHeight),
-                end = Offset(xRight, center.y + baseHeight),
-                strokeWidth = barWidth,
-                cap = StrokeCap.Round,
-            )
-            drawLine(
-                color = barColor.copy(alpha = 0.9f - normDist * 0.35f),
-                start = Offset(xLeft, center.y - baseHeight),
-                end = Offset(xLeft, center.y + baseHeight),
-                strokeWidth = barWidth,
-                cap = StrokeCap.Round,
-            )
-        }
-
-        // Flowing dual energy wave across the horizon
-        wavePath.reset()
-        val step = 8f
-        val amplitude = when (sessionState) {
-            SessionState.DISCONNECTED -> 4.dp.toPx()
-            SessionState.CONNECTING -> 14.dp.toPx()
-            SessionState.LISTENING, SessionState.SPEAKING -> 10.dp.toPx() + 28.dp.toPx() * level
-        }
-        var x = 0f
-        while (x <= size.width) {
-            val nx = (x / size.width) * 2f - 1f
-            val fade = (1f - nx * nx).coerceIn(0f, 1f)
-            val y = center.y + sin(nx * 4.5f + wavePhase) * amplitude * fade
-            if (x == 0f) wavePath.moveTo(x, y) else wavePath.lineTo(x, y)
-            x += step
-        }
-        drawPath(
-            path = wavePath,
-            brush = Brush.horizontalGradient(
-                colors = listOf(Color.Transparent, accentColor, MahiMagenta, Color.Transparent),
-            ),
-            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round),
-        )
-    }
-}
-
-@Composable
-private fun CentralVoiceButton(
-    sessionState: SessionState,
-    accentColor: Color,
+private fun BubbleTogglePill(
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
-    val icon = when (sessionState) {
-        SessionState.DISCONNECTED -> Icons.Rounded.PowerSettingsNew
-        SessionState.CONNECTING -> Icons.Rounded.GraphicEq
-        SessionState.LISTENING -> Icons.Rounded.Mic
-        SessionState.SPEAKING -> Icons.Rounded.Stop
-    }
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val coreShape = RoundedCornerShape(30.dp)
-
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(100.dp)
-            .minimumInteractiveComponentSize()
-            .clip(coreShape)
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MahiSurface,
-                        MahiDeepNavy,
-                    ),
-                ),
-            )
-            .border(
-                width = 2.5.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(accentColor, MahiMagenta),
-                ),
-                shape = coreShape,
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = ripple(bounded = true, color = accentColor),
-                onClick = onClick,
-            )
-            .testTag("central_mic_button"),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = stringResource(R.string.cd_central_mic_button),
-            tint = accentColor,
-            modifier = Modifier.size(38.dp),
-        )
-    }
-}
-
-@Composable
-private fun ActionChip(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    accentColor: Color,
-    testTag: String,
-    onClick: () -> Unit,
-) {
+    val accent = if (enabled) Color(0xFF25D366) else MahiTextSecondary
     Surface(
-        color = MahiSurface,
+        color = if (enabled) accent.copy(alpha = 0.16f) else MahiSurface.copy(alpha = 0.9f),
         shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, if (enabled) accent else MahiOutline),
         modifier = Modifier
             .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick)
-            .testTag(testTag),
+            .testTag("bubble_toggle_button"),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
-                imageVector = icon,
+                imageVector = Icons.Rounded.Layers,
                 contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(16.dp),
+                tint = accent,
+                modifier = Modifier.size(14.dp),
             )
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MahiTextPrimary,
+                text = if (enabled) stringResource(R.string.bubble_on) else stringResource(R.string.bubble_off),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (enabled) accent else MahiTextPrimary,
             )
         }
     }
@@ -931,9 +788,9 @@ private fun LanguageSelectorPill(
             .testTag("language_selector_button"),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
                 imageVector = Icons.Rounded.Translate,
@@ -1097,6 +954,96 @@ private fun DrawerLinkCard(
                     style = MaterialTheme.typography.labelMedium,
                     color = MahiTextSecondary,
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VoiceCharacterPickerSheet(
+    selectedCharacter: VoiceCharacter,
+    accentColor: Color,
+    onSelect: (VoiceCharacter) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MahiSurface,
+        contentColor = MahiTextPrimary,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.voice_sheet_title),
+                style = MaterialTheme.typography.titleLarge,
+                color = MahiTextPrimary,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.voice_sheet_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MahiTextSecondary,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.height(380.dp),
+            ) {
+                items(VoiceCharacter.entries) { character ->
+                    val isSelected = character == selectedCharacter
+                    Surface(
+                        color = if (isSelected) accentColor.copy(alpha = 0.14f) else MahiDeepNavy,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = if (isSelected) accentColor else MahiOutline,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .minimumInteractiveComponentSize()
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { onSelect(character) }
+                            .testTag("voice_char_${character.name.lowercase()}"),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column {
+                                Text(
+                                    text = character.displayName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MahiTextPrimary,
+                                )
+                                Text(
+                                    text = character.vibeTag,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MahiTextSecondary,
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Rounded.CheckCircle,
+                                    contentDescription = null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -34,6 +34,9 @@ class DemoMahiLiveSession(
     private val _selectedLanguage = MutableStateFlow(MahiLanguage.ENGLISH)
     override val selectedLanguage: StateFlow<MahiLanguage> = _selectedLanguage.asStateFlow()
 
+    private val _selectedCharacter = MutableStateFlow(VoiceCharacter.MAHI)
+    override val selectedCharacter: StateFlow<VoiceCharacter> = _selectedCharacter.asStateFlow()
+
     private val _lastToolAction = MutableStateFlow<MahiToolAction?>(null)
     override val lastToolAction: StateFlow<MahiToolAction?> = _lastToolAction.asStateFlow()
 
@@ -85,6 +88,10 @@ class DemoMahiLiveSession(
             if (_state.value != SessionState.CONNECTING) return@launch
 
             audioStreamer.setLanguage(_selectedLanguage.value.locale)
+            audioStreamer.setVoiceProfile(
+                _selectedCharacter.value.pitch,
+                _selectedCharacter.value.speechRate,
+            )
             if (hasMicPermission) {
                 audioStreamer.startCapture()
                 startVoiceActivityLoop()
@@ -118,6 +125,14 @@ class DemoMahiLiveSession(
         }
     }
 
+    override fun setVoiceCharacter(character: VoiceCharacter) {
+        _selectedCharacter.value = character
+        audioStreamer.setVoiceProfile(character.pitch, character.speechRate)
+        if (_state.value == SessionState.LISTENING || _state.value == SessionState.SPEAKING) {
+            speakLine(character.previewLine)
+        }
+    }
+
     override fun triggerSampleTurn() {
         if (_state.value == SessionState.DISCONNECTED || _state.value == SessionState.CONNECTING) {
             return
@@ -127,6 +142,12 @@ class DemoMahiLiveSession(
         val line = lines[turnIndex % lines.size]
         turnIndex++
         speakLine(line)
+    }
+
+    override fun speakFeedback(text: String) {
+        if (_state.value == SessionState.LISTENING || _state.value == SessionState.SPEAKING) {
+            speakLine(text)
+        }
     }
 
     override fun triggerSampleWebsiteTool() {
@@ -152,8 +173,8 @@ class DemoMahiLiveSession(
 
     private fun greetingFor(language: MahiLanguage): String = when (language) {
         MahiLanguage.ENGLISH -> "Demo voice mode active. Hey gorgeous, Mahi's online. What are we getting into today?"
-        MahiLanguage.HINGLISH -> "Demo voice mode active. Hey, Mahi online hai. Bolo, aaj kya plan hai?"
-        MahiLanguage.HINDI -> "डेमो वॉयस मोड चालू है। नमस्ते, माही ऑनलाइन है। बताओ आज क्या करना है?"
+        MahiLanguage.HINGLISH -> "Namaste! Main tumhara AI Assistant hu. Main tumhare upar bubble banke, Notifications padhke, Location aur Contacts se tumhari help kar sakta hu. Batao, pehle kya setup karu?"
+        MahiLanguage.HINDI -> "नमस्ते! मैं तुम्हारा AI असिस्टेंट हूँ। बताओ पहले क्या सेटअप करूँ?"
         MahiLanguage.SPANISH -> "Modo de voz demo activo. Hola, Mahi está en línea. ¿Qué hacemos hoy?"
         MahiLanguage.FRENCH -> "Mode vocal démo actif. Salut, Mahi est en ligne. On fait quoi aujourd'hui ?"
         MahiLanguage.JAPANESE -> "デモ音声モード起動。マヒがオンラインだよ。今日は何しようか？"
@@ -169,7 +190,13 @@ class DemoMahiLiveSession(
     }
 
     private fun speakLine(text: String) {
-        audioStreamer.interruptPlayback()
+        if (_state.value == SessionState.SPEAKING) {
+            audioStreamer.interruptPlayback()
+        }
+        audioStreamer.setVoiceProfile(
+            _selectedCharacter.value.pitch,
+            _selectedCharacter.value.speechRate,
+        )
         _state.value = SessionState.SPEAKING
         audioStreamer.speakDemoLine(text) {
             scope.launch {
