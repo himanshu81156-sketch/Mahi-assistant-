@@ -5,11 +5,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.LaunchedEffect
@@ -44,11 +46,36 @@ class MainActivity : ComponentActivity() {
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val studioState by studioViewModel.uiState.collectAsStateWithLifecycle()
                 var lastToolUrl by remember { mutableStateOf<String?>(null) }
+                var grantedStorageLabel by remember { mutableStateOf<String?>(null) }
+                var pickedMediaLabel by remember { mutableStateOf<String?>(null) }
 
                 val micPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission(),
                 ) { granted ->
                     viewModel.updateMicPermission(granted)
+                }
+
+                val storageFolderLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.OpenDocumentTree(),
+                ) { uri ->
+                    if (uri != null) {
+                        runCatching {
+                            contentResolver.takePersistableUriPermission(
+                                uri,
+                                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                            )
+                        }
+                        grantedStorageLabel = "Granted: ${uri.lastPathSegment ?: "Folder"}"
+                    }
+                }
+
+                val mediaPickerLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.PickVisualMedia(),
+                ) { uri ->
+                    if (uri != null) {
+                        pickedMediaLabel = "Selected: ${uri.lastPathSegment ?: "Media"}"
+                        studioViewModel.onReferencePhotoSelected(uri.toString())
+                    }
                 }
 
                 LaunchedEffect(Unit) {
@@ -96,6 +123,29 @@ class MainActivity : ComponentActivity() {
                     onSelectAspectRatio = { studioViewModel.onSelectAspectRatio(it) },
                     onToggleVideoPlayback = { studioViewModel.toggleVideoPlayback() },
                     onGenerateMedia = { studioViewModel.generateMedia() },
+                    grantedStorageLabel = grantedStorageLabel,
+                    pickedMediaLabel = pickedMediaLabel,
+                    onPickStorageFolder = { storageFolderLauncher.launch(null) },
+                    onPickMedia = {
+                        mediaPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo),
+                        )
+                    },
+                    onPickReferencePhoto = {
+                        mediaPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    },
+                    onClearReferencePhoto = {
+                        studioViewModel.onReferencePhotoSelected(null)
+                    },
+                    onOpenAppSettings = {
+                        val settingsIntent = Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", packageName, null),
+                        )
+                        runCatching { context.startActivity(settingsIntent) }
+                    },
                 )
             }
         }

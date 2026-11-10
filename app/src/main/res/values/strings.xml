@@ -49,4 +49,14 @@
     <string name="media_generate_photo">Create Photo</string>
     <string name="media_generate_video">Create Video</string>
     <string name="media_generating">Rendering…</string>
+    <string name="drawer_permissions_title">Permissions &amp; Storage</string>
+    <string name="drawer_storage_folder">Phone Storage Folder</string>
+    <string name="drawer_storage_subtitle">Tap to grant folder access</string>
+    <string name="drawer_media_picker">Photos &amp; Videos</string>
+    <string name="drawer_media_subtitle">Pick media from phone storage</string>
+    <string name="drawer_app_settings">App System Permissions</string>
+    <string name="drawer_app_settings_subtitle">Manage all Android permissions</string>
+    <string name="media_select_photo">Select Reference Photo</string>
+    <string name="media_change_photo">Change Photo</string>
+    <string name="media_photo_selected">Reference photo attached</string>
 </resources>

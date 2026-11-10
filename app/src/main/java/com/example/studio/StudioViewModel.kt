@@ -15,6 +15,7 @@ data class StudioUiState(
     val mediaPrompt: String = "",
     val selectedMediaType: MediaType = MediaType.PHOTO,
     val selectedAspectRatio: AspectRatioOption = AspectRatioOption.SQUARE,
+    val referencePhotoUri: String? = null,
     val isGeneratingMedia: Boolean = false,
     val generatedMedia: GeneratedMediaResult? = null,
     val isVideoPlaying: Boolean = true,
@@ -58,6 +59,10 @@ class StudioViewModel(
         _uiState.update { it.copy(isVideoPlaying = !it.isVideoPlaying) }
     }
 
+    fun onReferencePhotoSelected(uri: String?) {
+        _uiState.update { it.copy(referencePhotoUri = uri) }
+    }
+
     fun generateMedia() {
         val current = _uiState.value
         if (current.isGeneratingMedia) return
@@ -67,6 +72,7 @@ class StudioViewModel(
                 prompt = current.mediaPrompt,
                 type = current.selectedMediaType,
                 aspectRatio = current.selectedAspectRatio,
+                referencePhotoUri = current.referencePhotoUri,
             )
             _uiState.update {
                 it.copy(

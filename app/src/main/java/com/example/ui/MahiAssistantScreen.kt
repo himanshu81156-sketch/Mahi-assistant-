@@ -38,6 +38,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +48,7 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Build
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -55,7 +58,9 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material.icons.rounded.PermMedia
 import androidx.compose.material.icons.rounded.Phone
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.DrawerValue
@@ -147,6 +152,13 @@ fun MahiAssistantScreen(
     onSelectAspectRatio: (AspectRatioOption) -> Unit,
     onToggleVideoPlayback: () -> Unit,
     onGenerateMedia: () -> Unit,
+    grantedStorageLabel: String?,
+    pickedMediaLabel: String?,
+    onPickStorageFolder: () -> Unit,
+    onPickMedia: () -> Unit,
+    onPickReferencePhoto: () -> Unit,
+    onClearReferencePhoto: () -> Unit,
+    onOpenAppSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showLanguageSheet by remember { mutableStateOf(false) }
@@ -187,6 +199,7 @@ fun MahiAssistantScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .statusBarsPadding()
                         .navigationBarsPadding()
                         .padding(24.dp),
@@ -255,6 +268,53 @@ fun MahiAssistantScreen(
                         onClick = {
                             coroutineScope.launch { drawerState.close() }
                             onOpenUrl("https://whatsapp.com/channel/0029Vb75ZV26mYPSxjizl52m")
+                        },
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                    HorizontalDivider(color = MahiOutline)
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = stringResource(R.string.drawer_permissions_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MahiTextPrimary,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    DrawerLinkCard(
+                        title = stringResource(R.string.drawer_storage_folder),
+                        subtitle = grantedStorageLabel ?: stringResource(R.string.drawer_storage_subtitle),
+                        icon = Icons.Rounded.FolderOpen,
+                        accentColor = MahiCyan,
+                        testTag = "drawer_storage_button",
+                        onClick = {
+                            coroutineScope.launch { drawerState.close() }
+                            onPickStorageFolder()
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    DrawerLinkCard(
+                        title = stringResource(R.string.drawer_media_picker),
+                        subtitle = pickedMediaLabel ?: stringResource(R.string.drawer_media_subtitle),
+                        icon = Icons.Rounded.PhotoLibrary,
+                        accentColor = MahiMagenta,
+                        testTag = "drawer_media_button",
+                        onClick = {
+                            coroutineScope.launch { drawerState.close() }
+                            onPickMedia()
+                        },
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    DrawerLinkCard(
+                        title = stringResource(R.string.drawer_app_settings),
+                        subtitle = stringResource(R.string.drawer_app_settings_subtitle),
+                        icon = Icons.Rounded.Settings,
+                        accentColor = MahiViolet,
+                        testTag = "drawer_app_settings_button",
+                        onClick = {
+                            coroutineScope.launch { drawerState.close() }
+                            onOpenAppSettings()
                         },
                     )
                 }
@@ -596,6 +656,8 @@ fun MahiAssistantScreen(
                                 onSelectMediaType = onSelectMediaType,
                                 onSelectAspectRatio = onSelectAspectRatio,
                                 onToggleVideoPlayback = onToggleVideoPlayback,
+                                onPickReferencePhoto = onPickReferencePhoto,
+                                onClearReferencePhoto = onClearReferencePhoto,
                                 onGenerateMedia = onGenerateMedia,
                                 modifier = Modifier.fillMaxSize(),
                             )

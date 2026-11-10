@@ -1,5 +1,7 @@
 package com.example.ui
 
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -8,6 +10,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,10 +35,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.FitnessCenter
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Refresh
@@ -69,10 +74,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.example.R
 import com.example.studio.AppBlueprint
 import com.example.studio.AspectRatioOption
@@ -368,6 +380,8 @@ fun MediaStudioScreen(
     onSelectMediaType: (MediaType) -> Unit,
     onSelectAspectRatio: (AspectRatioOption) -> Unit,
     onToggleVideoPlayback: () -> Unit,
+    onPickReferencePhoto: () -> Unit,
+    onClearReferencePhoto: () -> Unit,
     onGenerateMedia: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -457,6 +471,13 @@ fun MediaStudioScreen(
                     }
                 }
             }
+
+            // Reference Photo Selector
+            ReferencePhotoPickerCard(
+                photoUri = uiState.referencePhotoUri,
+                onPickPhoto = onPickReferencePhoto,
+                onClearPhoto = onClearReferencePhoto,
+            )
 
             OutlinedTextField(
                 value = uiState.mediaPrompt,
@@ -638,37 +659,69 @@ private fun GeneratedMediaPreviewCard(
                     .clip(RoundedCornerShape(14.dp))
                     .background(MahiDeepNavy),
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val s = abs(media.seed % 100) / 100f
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                MahiDeepNavy,
-                                if (media.type == MediaType.PHOTO) MahiViolet.copy(alpha = 0.45f) else MahiMagenta.copy(alpha = 0.4f),
-                                MahiCyan.copy(alpha = 0.28f),
-                            ),
-                        ),
+                val referenceBitmap = rememberBitmapFromUri(media.referencePhotoUri)
+                if (referenceBitmap != null) {
+                    val scale = if (media.type == MediaType.VIDEO) {
+                        1f + 0.08f * sin(effectivePhase * 2 * PI).toFloat()
+                    } else {
+                        1f
+                    }
+                    Image(
+                        bitmap = referenceBitmap,
+                        contentDescription = media.prompt,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = scale
+                                scaleY = scale
+                            },
                     )
-                    val cx = size.width * (0.35f + 0.3f * s)
-                    val cy = size.height * 0.5f
-                    for (i in 0 until 18) {
-                        val angle = (i * 20f + effectivePhase * 360f) * (PI / 180.0)
-                        val r = size.minDimension * (0.18f + (i % 4) * 0.06f)
-                        val px = cx + (r * cos(angle)).toFloat()
-                        val py = cy + (r * sin(angle)).toFloat()
-                        drawLine(
-                            color = if (i % 2 == 0) MahiCyan else MahiMagenta,
-                            start = Offset(cx, cy),
-                            end = Offset(px, py),
-                            strokeWidth = 3.dp.toPx(),
-                            cap = StrokeCap.Round,
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MahiViolet.copy(alpha = 0.28f),
+                                        MahiCyan.copy(alpha = 0.16f),
+                                    ),
+                                ),
+                            ),
+                    )
+                } else {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val s = abs(media.seed % 100) / 100f
+                        drawRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    MahiDeepNavy,
+                                    if (media.type == MediaType.PHOTO) MahiViolet.copy(alpha = 0.45f) else MahiMagenta.copy(alpha = 0.4f),
+                                    MahiCyan.copy(alpha = 0.28f),
+                                ),
+                            ),
+                        )
+                        val cx = size.width * (0.35f + 0.3f * s)
+                        val cy = size.height * 0.5f
+                        for (i in 0 until 18) {
+                            val angle = (i * 20f + effectivePhase * 360f) * (PI / 180.0)
+                            val r = size.minDimension * (0.18f + (i % 4) * 0.06f)
+                            val px = cx + (r * cos(angle)).toFloat()
+                            val py = cy + (r * sin(angle)).toFloat()
+                            drawLine(
+                                color = if (i % 2 == 0) MahiCyan else MahiMagenta,
+                                start = Offset(cx, cy),
+                                end = Offset(px, py),
+                                strokeWidth = 3.dp.toPx(),
+                                cap = StrokeCap.Round,
+                            )
+                        }
+                        drawCircle(
+                            color = MahiCyan.copy(alpha = 0.3f),
+                            radius = size.minDimension * (0.22f + 0.08f * sin(effectivePhase * 2 * PI).toFloat()),
+                            center = Offset(cx, cy),
                         )
                     }
-                    drawCircle(
-                        color = MahiCyan.copy(alpha = 0.3f),
-                        radius = size.minDimension * (0.22f + 0.08f * sin(effectivePhase * 2 * PI).toFloat()),
-                        center = Offset(cx, cy),
-                    )
                 }
 
                 if (media.type == MediaType.VIDEO) {
@@ -894,6 +947,121 @@ private fun LiveMiniAppPreview(blueprint: AppBlueprint) {
                             Icon(Icons.Rounded.Refresh, contentDescription = "Reset", tint = MahiTextPrimary)
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberBitmapFromUri(uriString: String?): ImageBitmap? {
+    val context = LocalContext.current
+    var bitmap by remember(uriString) { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(uriString) {
+        if (uriString == null) {
+            bitmap = null
+            return@LaunchedEffect
+        }
+        bitmap = withContext(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(uriString))?.use { stream ->
+                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
+                }
+            }.getOrNull()
+        }
+    }
+    return bitmap
+}
+
+@Composable
+private fun ReferencePhotoPickerCard(
+    photoUri: String?,
+    onPickPhoto: () -> Unit,
+    onClearPhoto: () -> Unit,
+) {
+    val thumbnail = rememberBitmapFromUri(photoUri)
+
+    Surface(
+        color = MahiSurface,
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (photoUri != null) MahiCyan.copy(alpha = 0.6f) else MahiOutline,
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .minimumInteractiveComponentSize()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onPickPhoto)
+            .testTag("select_reference_photo_button"),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                if (thumbnail != null) {
+                    Image(
+                        bitmap = thumbnail,
+                        contentDescription = stringResource(R.string.media_photo_selected),
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                    )
+                } else {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MahiDeepNavy),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.PhotoLibrary,
+                            contentDescription = null,
+                            tint = MahiCyan,
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        text = if (photoUri != null) {
+                            stringResource(R.string.media_change_photo)
+                        } else {
+                            stringResource(R.string.media_select_photo)
+                        },
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MahiTextPrimary,
+                    )
+                    if (photoUri != null) {
+                        Text(
+                            text = stringResource(R.string.media_photo_selected),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MahiCyan,
+                        )
+                    }
+                }
+            }
+
+            if (photoUri != null) {
+                IconButton(
+                    onClick = onClearPhoto,
+                    modifier = Modifier.minimumInteractiveComponentSize(),
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = "Remove photo",
+                        tint = MahiTextSecondary,
+                    )
                 }
             }
         }

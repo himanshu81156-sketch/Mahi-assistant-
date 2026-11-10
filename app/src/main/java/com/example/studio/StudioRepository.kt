@@ -38,6 +38,7 @@ data class GeneratedMediaResult(
     val aspectRatio: AspectRatioOption,
     val styleLabel: String,
     val seed: Int,
+    val referencePhotoUri: String? = null,
     val isDemo: Boolean = true,
 )
 
@@ -52,6 +53,7 @@ interface StudioRepository {
         prompt: String,
         type: MediaType,
         aspectRatio: AspectRatioOption,
+        referencePhotoUri: String? = null,
     ): GeneratedMediaResult
 }
 
@@ -110,6 +112,7 @@ class DemoStudioRepository : StudioRepository {
         prompt: String,
         type: MediaType,
         aspectRatio: AspectRatioOption,
+        referencePhotoUri: String?,
     ): GeneratedMediaResult {
         delay(950L)
         val cleanPrompt = prompt.trim().ifBlank { "Futuristic neon cyberpunk skyline" }
@@ -120,6 +123,7 @@ class DemoStudioRepository : StudioRepository {
             aspectRatio = aspectRatio,
             styleLabel = if (type == MediaType.PHOTO) "Demo Photo Render" else "Demo Motion Reel (6s)",
             seed = cleanPrompt.hashCode(),
+            referencePhotoUri = referencePhotoUri,
             isDemo = true,
         )
     }
